@@ -215,6 +215,7 @@
     "mock:llm": "node --import tsx packages/test-support/llm-mock-server/src/bin.ts",
     "start:web": "node --import tsx/esm apps/cli/src/bin.ts web",
     "dev:web": "tsx scripts/dev-web.ts --poll",
+    "develop": "tsx learning/dev.ts",
     "dev:bundle-registry": "tsx scripts/dev-bundle-registry.ts",
     "postinstall": "node scripts/install-lefthook.mjs",
     "gen-official-bundle-catalog": "tsx scripts/gen-official-bundle-catalog.ts",

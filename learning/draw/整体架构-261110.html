@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dsh 整体架构</title>
+<style>
+:root {
+  --bg: #f7f6f2; --card: #ffffff; --ink: #1d1f23; --muted: #646a73; --line: #d9d6cc;
+  --soft: #efede6; --zone: #fbfaf7; --code-bg: #f0eee7;
+  --a: #b45309; --a-bg: #fdf3e1;   /* 拿代码 */
+  --b: #1d5fb8; --b-bg: #e8f0fc;   /* 一问一答 */
+  --c: #17794a; --c-bg: #e5f4ec;   /* 订阅 / 瞬态 */
+  --d: #6b3fb8; --d-bg: #f0eafb;   /* Agent 核心 / 扩展点 */
+  --hl: #e8590c;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16181c; --card: #1f2227; --ink: #e8e6e1; --muted: #9aa0a9; --line: #383c44;
+    --soft: #262a30; --zone: #1a1d21; --code-bg: #2a2e35;
+    --a: #f0b354; --a-bg: #3a2c12; --b: #7fb0f5; --b-bg: #17283f; --c: #6fcf9a; --c-bg: #15301f;
+    --d: #b79cf2; --d-bg: #2a2140; --hl: #ff922b;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14.5px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+main { max-width: 1220px; margin: 0 auto; padding: 28px 16px 72px; }
+h1 { font-size: 26px; margin: 0 0 4px; }
+h2 { font-size: 19px; margin: 48px 0 4px; }
+.lede, .q { color: var(--muted); margin: 0 0 12px; }
+code, .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+.take { border-left: 4px solid var(--ink); background: var(--soft); padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 14px 0 0; }
+
+/* 课程选择条 */
+.picker { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 10px 0 8px; border-bottom: 1px solid var(--line); margin-top: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips .grp { color: var(--muted); font-size: 12.5px; margin: 0 2px 0 8px; }
+.chips .grp:first-child { margin-left: 0; }
+.chip { font: inherit; font-size: 13px; cursor: pointer; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); border-radius: 99px; padding: 1px 11px; min-height: 28px; }
+.chip:hover { border-color: var(--ink); }
+.chip[aria-pressed="true"] { background: var(--hl); border-color: var(--hl); color: #fff; font-weight: 700; }
+#info { margin-top: 7px; font-size: 13.5px; color: var(--muted); min-height: 22px; }
+#info b { color: var(--ink); }
+
+/* 分区 */
+.zone { border: 2px solid var(--ink); border-radius: 14px; background: var(--zone); padding: 12px 14px 14px; margin-top: 12px; }
+.zone.ext { border-style: dashed; border-color: var(--muted); }
+.zt { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 10px; }
+.zt b { font-size: 16.5px; }
+.zt span { color: var(--muted); font-size: 12.5px; }
+.row { display: grid; grid-template-columns: 118px 1fr; gap: 10px; padding: 8px 0; border-top: 1px dashed var(--line); }
+.row:first-of-type { border-top: 0; padding-top: 0; }
+.lab b { display: block; font-size: 13.5px; }
+.lab span { display: block; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.blocks { display: grid; gap: 8px; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); }
+.b { background: var(--card); border: 1.5px solid var(--line); border-radius: 8px; padding: 7px 10px; transition: opacity .15s; }
+.b .nm { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 700; font-size: 13px; overflow-wrap: anywhere; }
+.b .nt { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.b .key { display: inline-block; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--d); border: 1px solid var(--d); border-radius: 4px; padding: 0 5px; margin-left: 2px; vertical-align: 1px; }
+.b.core { border-color: var(--d); background: var(--d-bg); }
+.b.loop { border-width: 2.5px; }
+.b.span2 { grid-column: span 2; } .b.spanall { grid-column: 1 / -1; }
+.n { display: inline-block; min-width: 19px; height: 19px; line-height: 19px; text-align: center; border-radius: 99px; background: var(--ink); color: var(--card); font: 700 11.5px/19px -apple-system, system-ui, sans-serif; margin-left: 3px; vertical-align: 1px; }
+.steps { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 5px; font-size: 12.5px; }
+.steps span { border: 1px solid var(--d); border-radius: 6px; padding: 0 7px; background: var(--card); }
+.steps i { font-style: normal; color: var(--muted); }
+
+/* 启动条 */
+.boot { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; }
+.boot .b { flex: 1 1 130px; }
+.boot .arr { align-self: center; color: var(--muted); font-size: 16px; }
+.boot .b.tree { border-color: var(--ink); border-width: 2px; }
+.entries { margin-top: 9px; font-size: 13px; color: var(--muted); }
+.entries b { color: var(--ink); }
+
+/* 线路 */
+.wire { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0 0; position: relative; }
+.wire .b { border-width: 2px; border-color: var(--k); background: var(--kbg); text-align: center; position: relative; padding: 16px 10px; }
+.wire .b::before, .wire .b::after { content: ""; position: absolute; left: 50%; margin-left: -7px; border-left: 7px solid transparent; border-right: 7px solid transparent; }
+.wire .b::before { top: 4px; border-bottom: 8px solid var(--k); }
+.wire .b::after { bottom: 4px; border-top: 8px solid var(--k); }
+.wire .b.up::after { display: none; }
+.wire .nm { color: var(--k); }
+.ka { --k: var(--a); --kbg: var(--a-bg); } .kb { --k: var(--b); --kbg: var(--b-bg); } .kc { --k: var(--c); --kbg: var(--c-bg); }
+.wirecap { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 12px; }
+
+/* seam */
+.seams { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sg { border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px 9px; background: var(--card); }
+.sg > b { font-size: 12.5px; display: block; margin-bottom: 5px; }
+.sg .cs { display: flex; flex-wrap: wrap; gap: 5px; }
+.s.b { padding: 1px 8px; border-radius: 6px; font-size: 12.5px; background: var(--soft); border-width: 1px; }
+.s.b .nm { font-size: 12.5px; display: inline; } .s.b .nt { display: inline; font-size: 12px; }
+
+/* 高亮 */
+main.has-pick .b:not(.on) { opacity: .26; }
+main.has-pick .b.on { border-color: var(--hl); box-shadow: 0 0 0 2px var(--hl); }
+
+/* 图 2 */
+.flowwrap { display: grid; grid-template-columns: 1.55fr 1fr; gap: 14px; align-items: start; }
+.turn { border: 2px solid var(--ink); border-radius: 12px; padding: 10px 12px; background: var(--zone); }
+.step { border: 2px solid var(--d); border-radius: 10px; padding: 8px 10px; margin: 8px 0 8px 14px; background: var(--d-bg); }
+.cap { font-size: 12.5px; color: var(--muted); margin: 2px 0 6px; }
+.f.b { display: grid; grid-template-columns: 250px 1fr; gap: 10px; align-items: baseline; padding: 4px 8px; margin: 4px 0; border-width: 1px; }
+.f .t { font-size: 13px; color: var(--muted); }
+.f .t b { color: var(--ink); font-weight: 600; }
+.ev { display: inline-block; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; border-radius: 5px; padding: 0 7px; margin: 1px 2px 1px 0; }
+.ev.dur { background: var(--ink); color: var(--card); }
+.ev.live { border: 1.5px dashed var(--c); color: var(--c); }
+.ev.wf { border: 1.5px solid var(--d); color: var(--d); background: var(--card); }
+.ev.act { color: var(--muted); border: 1px solid var(--line); background: var(--card); font-family: inherit; }
+.again { margin: 2px 0 2px 14px; font-size: 13px; color: var(--d); font-weight: 600; }
+.legend .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 13.5px; }
+.legend .card p { margin: 6px 0 0; }
+.legend h3 { margin: 0; font-size: 14px; }
+
+/* 图 3 */
+.rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.rules .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.rules h3 { margin: 0 0 6px; font-size: 15.5px; }
+.rules p { margin: 6px 0 0; font-size: 13.5px; }
+.rules .eg { margin-top: 8px; font-size: 12.5px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 7px; }
+.tri { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 8px; font-size: 12.5px; }
+.tri span { border: 1.5px solid var(--line); border-radius: 6px; padding: 1px 8px; background: var(--soft); }
+.tri i { font-style: normal; color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin-top: 12px; background: var(--card); border-radius: 10px; overflow: hidden; }
+th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--soft); font-weight: 650; }
+tr:last-child td { border-bottom: 0; }
+.src { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
+
+@media (max-width: 860px) {
+  .row { grid-template-columns: 1fr; }
+  .blocks { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .wire, .seams, .rules, .flowwrap { grid-template-columns: 1fr; }
+  .f.b { grid-template-columns: 1fr; gap: 2px; }
+  .picker { position: static; }
+}
+</style>
+</head>
+<body>
+<main id="m">
+
+<h1>dsh 整体架构</h1>
+<p class="lede">学到哪一课，先来这张图上找到它在哪。基于本地 <code>feat/learn</code>（0.2.2-rc.1）和 <code>docs/architecture.zh.md</code>，画于 2026-11-10。</p>
+
+<div class="picker">
+  <div class="chips" id="chips">
+    <button class="chip" data-id="" aria-pressed="true">全部</button>
+    <span class="grp">第 0 级</span><button class="chip" data-id="0.1">0.1</button><button class="chip" data-id="0.2">0.2</button>
+    <span class="grp">第 1 级</span><button class="chip" data-id="1.1">1.1</button><button class="chip" data-id="1.2">1.2</button><button class="chip" data-id="1.3">1.3</button><button class="chip" data-id="1.4">1.4</button><button class="chip" data-id="1.5">1.5</button>
+    <span class="grp">第 2 级</span><button class="chip" data-id="2.1">2.1</button><button class="chip" data-id="2.2">2.2</button><button class="chip" data-id="2.3">2.3</button>
+    <span class="grp">第 3 级</span><button class="chip" data-id="3.1">3.1</button><button class="chip" data-id="3.2">3.2</button><button class="chip" data-id="3.3">3.3</button>
+    <span class="grp">第 4 级</span><button class="chip" data-id="4.1">4.1</button><button class="chip" data-id="4.2">4.2</button><button class="chip" data-id="4.3">4.3</button>
+    <span class="grp">第 5 级</span><button class="chip" data-id="5">5</button>
+  </div>
+  <div id="info">点一个课程编号，图上只亮起这一课要看的块。黑底圆圈 <span class="n">1</span>–<span class="n">10</span> 是路线文件"主线"那张图的编号。</div>
+</div>
+
+<!-- ═════════════ 图 1 ═════════════ -->
+<h2>图 1　全景：两个进程，一条线路</h2>
+<p class="q">从上往下读：浏览器里的界面 → 线路 → 本机的 Host → 外部世界。屏幕上的状态自下而上流上来，你的操作自上而下变成命令。</p>
+
+<div class="zone" style="border-width:1.5px">
+  <div class="zt"><b>启动与组装</b><span>dsh 没有写死的主程序。启动就是按层把配置叠起来，得到一棵 Cordis 插件树。</span></div>
+  <div class="boot">
+    <div class="b" data-l="4.3"><div class="nm">dsh --profile web</div><div class="nt">选一份具名组装（profile）</div></div>
+    <span class="arr">→</span>
+    <div class="b" data-l="4.3"><div class="nm">dsh-base</div><div class="nt">组合包：模型、工具、持久化、沙箱、设置</div></div>
+    <span class="arr">+</span>
+    <div class="b" data-l="4.3"><div class="nm">dsh-web-app</div><div class="nt">组合包：浏览器应用</div></div>
+    <span class="arr">+</span>
+    <div class="b" data-l="4.3"><div class="nm">cordis.patch.yml</div><div class="nt">profile 的、home 的、<code>--patch</code> 的，后者覆盖前者</div></div>
+    <span class="arr">→</span>
+    <div class="b tree" data-l="0.1 4.1 4.3"><div class="nm">一棵插件树</div><div class="nt"><code>--dump-config</code> 能打印出来，每一项都可以被 patch 替换</div></div>
+  </div>
+  <div class="entries"><b>同一套 Host 核心，不同的入口：</b>web（本图）· desktop（Electron 包着 web）· headless（跑一次就退出）· sdk（JSON-RPC，TypeScript 和 Python）· acp（自动化）</div>
+</div>
+
+<div class="zone">
+  <div class="zt"><b>浏览器 · Client 插件树</b><span>packages/client/*（70 多个包）和 packages/api/*-controller 的 client 一半</span></div>
+
+  <div class="row">
+    <div class="lab"><b>渲染与拼装</b><span>声明位置，把内容挂成 React 树</span></div>
+    <div class="blocks" style="--n:5">
+      <div class="b" data-l="0.1"><div class="nm">ui-layout</div><div class="nt">AppFrame，声明 sidebar、main、rightbar 等 6 个位置</div></div>
+      <div class="b" data-l="0.1"><div class="nm">ui-slots</div><div class="nt">位置的注册表，记录谁注册到了哪</div></div>
+      <div class="b" data-l="0.1"><div class="nm">ui-renderer</div><div class="nt">唯一接触 React 的包，渲染 <code>root</code></div></div>
+      <div class="b" data-l="0.1"><div class="nm">ui-sidebar · ui-sidebar-right · ui-settings …</div><div class="nt">各功能 UI，把自己注册进位置</div></div>
+      <div class="b" data-l="0.1 1.3 2.1"><div class="nm">ui-chat<span class="n">10</span></div><div class="nt">把事件画成消息、思考、工具卡片</div></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lab"><b>Conversation 数据</b><span>把事件组装成可渲染的节点</span></div>
+    <div class="blocks" style="--n:2">
+      <div class="b" data-l="1.1 1.3 1.4 1.5"><div class="nm">ui-conversation<span class="n">1</span></div><div class="nt">输入框提交、取消；把<b>持久事件</b>和<b>实时 chunk</b> 关联成同一条回答</div></div>
+      <div class="b"><div class="nm">ui-session · ui-workspace</div><div class="nt">UI adapter：把下面的 model 变成组件能用的 hook</div></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lab"><b>Client model</b><span>Host 状态在浏览器里的镜像，不依赖 React</span></div>
+    <div class="blocks" style="--n:2">
+      <div class="b" data-l="0.2 1.1 1.3 1.5"><div class="nm">session-controller / client<span class="n">2</span><span class="n">9</span></div><div class="nt">ClientSessions → SessionManager → Session。每个 Session 维护一段事件窗口，发 prompt、跟流</div></div>
+      <div class="b" data-l="0.2"><div class="nm">workspace-controller / client</div><div class="nt">工作区和会话列表的本地副本</div></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lab"><b>传输</b><span>把方法调用变成网络请求</span></div>
+    <div class="blocks" style="--n:2">
+      <div class="b" data-l="0.2 1.1"><div class="nm">ctx.remote.&lt;namespace&gt;</div><div class="nt">由 Host 的类型生成的方法，如 <code>ctx.remote.session.prompt()</code></div></div>
+      <div class="b" data-l="0.2 1.1 1.5"><div class="nm">client/connection</div><div class="nt">管物理连接、请求配对、断线重连后的"代"</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="wire">
+  <div class="b up ka" data-l="0.1 0.2"><div class="nm">GET /　·　GET /plugins/??…</div><div class="nt">拿代码：HTML 里的插件图，加合并下载的插件代码</div></div>
+  <div class="b kb" data-l="0.2 1.1 1.4"><div class="nm">HTTP POST /api/&lt;ns&gt;/&lt;method&gt;</div><div class="nt">一问一答：prompt、cancel、读配置</div></div>
+  <div class="b kc" data-l="0.2 1.1 1.3 1.5"><div class="nm">WebSocket /api/remote.mux</div><div class="nt">订阅：一条连接上跑多条逻辑流，首帧全量，之后增量</div></div>
+</div>
+<div class="wirecap">▲ 浏览器　　线路（只有这三种）　　Host ▼</div>
+
+<div class="zone">
+  <div class="zt"><b>Host · 本机 Node 进程</b><span>127.0.0.1:3080　拥有权威状态：会话日志、Agent、工具执行都在这里</span></div>
+
+  <div class="row">
+    <div class="lab"><b>入口</b><span>收请求，分给对应的方法</span></div>
+    <div class="blocks" style="--n:5">
+      <div class="b" data-l="0.2"><div class="nm">host/webserver</div><div class="nt">HTTP 服务器。自己不发文件，别的插件在它上面注册路由</div></div>
+      <div class="b" data-l="0.1 0.2"><div class="nm">host/frontend-static</div><div class="nt">发页面壳，把插件图写进 index</div></div>
+      <div class="b" data-l="0.1 0.2"><div class="nm">client/modules</div><div class="nt">Host 一半：发合并后的插件代码</div></div>
+      <div class="b" data-l="0.2"><div class="nm">client/connection</div><div class="nt">Host 一半：启动令牌认证、请求来源校验</div></div>
+      <div class="b" data-l="0.2 1.1"><div class="nm">api/gateway</div><div class="nt">Remote 方法分发、取消、逻辑流、<code>$events</code></div></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lab"><b>Controller</b><span>给界面用的一层接口（BFF）</span></div>
+    <div class="blocks" style="--n:3">
+      <div class="b span2" data-l="0.2 1.1 1.3 1.4 1.5"><div class="nm">api/session-controller<span class="n">3</span><span class="n">8</span></div><div class="nt"><code>prompt</code>、<code>cancel</code> 等命令；<code>session/follow</code> 和 <code>session/control</code> 两条流。实时回答攒在 <code>SessionAssistantStreamAccumulator</code>（进程内存）里，供刷新后续上</div></div>
+      <div class="b" data-l="0.2"><div class="nm">workspace · settings · job · account · terminal · remote-access</div><div class="nt">其余 controller，各管一类状态</div></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lab"><b>Agent 核心</b><span>packages/core/*。每块都是一个可替换的服务</span></div>
+    <div class="blocks" style="--n:5">
+      <div class="b core loop spanall" data-l="1.2 1.3 1.4 2.1 2.3 3.2 3.3">
+        <div class="nm">core/agent-loop<span class="key">ctx.agentLoop</span><span class="n">4</span><span class="n">7</span></div>
+        <div class="nt">默认的循环驱动器：一轮（turn）里跑若干步（step），每一步是一次模型请求加它调用的工具。细节见图 2。</div>
+        <div class="steps"><span>从 inbox 领输入</span><i>→</i><span>组装提示词和工具 schema</span><i>→</i><span>请求模型，边收边推</span><i>→</i><span>执行工具</span><i>→</i><span>写日志</span><i>→</i><span>还欠工作就再来一步</span></div>
+      </div>
+      <div class="b core" data-l="1.1 1.4 3.1"><div class="nm">core/agent<span class="key">ctx.agents</span></div><div class="nt">Agent 接口、活跃 Agent 注册表、inbox、<code>agent/*</code> 事件</div></div>
+      <div class="b core" data-l="4.2"><div class="nm">core/system-prompt<span class="key">ctx.systemPrompt</span></div><div class="nt">拼提示词片段和工具 schema</div></div>
+      <div class="b core" data-l="1.3 3.3"><div class="nm">llm/llm<span class="key">ctx.llm</span></div><div class="nt">消息和流的统一词汇，适配器挂在这里</div></div>
+      <div class="b core" data-l="2.1 2.2 2.3 4.2"><div class="nm">core/tools<span class="key">ctx.tools</span></div><div class="nt">工具注册表，带把关的执行流水线</div></div>
+      <div class="b core" data-l="1.2 1.4 1.5 2.1 3.1 3.2"><div class="nm">core/session<span class="key">ctx.sessions</span></div><div class="nt">只追加的事件日志。模型看到的历史从这里推导</div></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lab"><b>模型适配器</b><span>把统一词汇翻译成某家的 API</span></div>
+    <div class="blocks" style="--n:4">
+      <div class="b span2" data-l="1.3 1.4"><div class="nm">llm-deepseek<span class="n">5</span><span class="n">6</span></div><div class="nt">生产默认。<code>adapter.ts</code> 发 fetch，<code>sse.ts</code> 把 SSE 解析成 StreamChunk</div></div>
+      <div class="b"><div class="nm">llm-retry · token-meter</div><div class="nt">重试、token 计量</div></div>
+      <div class="b"><div class="nm">llm-pi-ai</div><div class="nt">走 pi-ai 的适配器，默认休眠</div></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lab"><b>能力（seam）</b><span>工具背后的实现，每一类都能换提供方</span></div>
+    <div class="seams">
+      <div class="sg"><b>执行命令</b><div class="cs">
+        <span class="s b" data-l="2.2"><span class="nm">shell</span> <span class="nt">bash、pwsh</span></span>
+        <span class="s b"><span class="nm">terminal</span> <span class="nt">持久终端</span></span>
+        <span class="s b"><span class="nm">subprocess</span></span>
+        <span class="s b" data-l="2.2"><span class="nm">sandbox</span> <span class="nt">进程隔离</span></span>
+        <span class="s b"><span class="nm">ptc-runtime</span></span>
+        <span class="s b"><span class="nm">ssh</span></span>
+      </div></div>
+      <div class="sg"><b>文件与代码</b><div class="cs">
+        <span class="s b" data-l="2.1"><span class="nm">fs</span> <span class="nt">读写、搜索</span></span>
+        <span class="s b"><span class="nm">lsp</span></span>
+        <span class="s b"><span class="nm">spill</span> <span class="nt">超长输出落盘</span></span>
+        <span class="s b"><span class="nm">attachment</span> <span class="nt">附件</span></span>
+        <span class="s b"><span class="nm">deliverables</span></span>
+      </div></div>
+      <div class="sg"><b>联网与外部</b><div class="cs">
+        <span class="s b"><span class="nm">web</span> <span class="nt">搜索、抓取</span></span>
+        <span class="s b" data-l="5"><span class="nm">mcp</span> <span class="nt">外部工具</span></span>
+        <span class="s b"><span class="nm">browser-use</span></span>
+        <span class="s b"><span class="nm">computer-use</span></span>
+      </div></div>
+      <div class="sg"><b>多 Agent 与后台</b><div class="cs">
+        <span class="s b" data-l="5"><span class="nm">subagent</span></span>
+        <span class="s b"><span class="nm">team</span></span>
+        <span class="s b" data-l="5"><span class="nm">jobs</span></span>
+        <span class="s b" data-l="5"><span class="nm">workflow</span></span>
+        <span class="s b" data-l="5"><span class="nm">schedule</span></span>
+        <span class="s b"><span class="nm">goal</span></span>
+      </div></div>
+      <div class="sg"><b>提示词与上下文</b><div class="cs">
+        <span class="s b" data-l="1.1"><span class="nm">context</span> <span class="nt">时间、工作区说明、引用</span></span>
+        <span class="s b" data-l="5"><span class="nm">skill</span></span>
+        <span class="s b" data-l="3.2"><span class="nm">compaction</span> <span class="nt">压缩</span></span>
+        <span class="s b"><span class="nm">preset</span> <span class="nt">每个会话的插件组合</span></span>
+        <span class="s b"><span class="nm">plan</span></span>
+        <span class="s b"><span class="nm">todo</span></span>
+      </div></div>
+      <div class="sg"><b>人在回路</b><div class="cs">
+        <span class="s b" data-l="2.2"><span class="nm">interaction</span> <span class="nt">审批、提问、用户命令</span></span>
+        <span class="s b"><span class="nm">guard</span> <span class="nt">循环防护</span></span>
+        <span class="s b"><span class="nm">feedback</span></span>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lab"><b>持久化与基础</b><span>把状态存下来，以及大家都要用的服务</span></div>
+    <div class="blocks" style="--n:4">
+      <div class="b" data-l="1.2 1.5 3.1"><div class="nm">session-persistence-jsonl</div><div class="nt">会话日志落成 <code>session.vN.jsonl</code></div></div>
+      <div class="b" data-l="0.2 1.5"><div class="nm">session-projection</div><div class="nt">把事件折叠成视图，如会话摘要、轮次状态</div></div>
+      <div class="b"><div class="nm">session-format-vN-to-vN+1</div><div class="nt">格式迁移：只新增后继文件，不改旧文件</div></div>
+      <div class="b"><div class="nm">settings · credentials · storage · workspace · telemetry</div><div class="nt">设置、凭据、非会话存储、工作区、遥测</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="zone ext">
+  <div class="zt"><b>外部世界</b><span>Host 伸手出去的地方</span></div>
+  <div class="blocks" style="--n:4">
+    <div class="b" data-l="1.3 1.4"><div class="nm">DeepSeek API</div><div class="nt">HTTPS 请求，回答以 SSE 流回来。连接由 Host 持有，不是浏览器</div></div>
+    <div class="b" data-l="1.2 1.5 3.1"><div class="nm">磁盘 $DSH_HOME</div><div class="nt"><code>sessions/</code> <code>profiles/</code> <code>storages/</code> <code>logs/</code>。学习用 <code>~/.dsh-learn</code></div></div>
+    <div class="b" data-l="2.1 2.2"><div class="nm">操作系统</div><div class="nt">文件、子进程、沙箱（Seatbelt、bwrap、Landlock）</div></div>
+    <div class="b" data-l="5"><div class="nm">外部服务</div><div class="nt">MCP 服务器、网页、SSH 主机</div></div>
+  </div>
+</div>
+
+<p class="take"><b>记一句：</b>浏览器只负责显示和发命令，真正干活、存数据的是本机的 Host 进程。两边各是一棵插件树，中间只有三种线路。</p>
+
+<!-- ═════════════ 图 2 ═════════════ -->
+<h2>图 2　放大 agent-loop：一轮对话里发生什么</h2>
+<p class="q">图 1 里紫色那一块的内部。一<b>轮</b>（turn）从领到输入开始，到不再欠任何工作结束；一<b>步</b>（step）是一次模型请求加它调用的工具。</p>
+
+<div class="flowwrap">
+  <div class="turn">
+    <div class="f b" data-l="1.2"><div><span class="ev dur">turn/start</span></div><div class="t">一轮开始</div></div>
+    <div class="f b" data-l="1.1 3.3"><div><span class="ev act">领取输入</span></div><div class="t">从 inbox 取出排队的消息；<b>快照这一刻的模型选择</b>；组装提示词片段和工具 schema</div></div>
+    <div class="f b" data-l="1.1"><div><span class="ev wf">agent/pre-step</span></div><div class="t">插件可以<b>接纳、改写或拒绝</b>这条输入。被拒绝就直接关闭这一轮</div></div>
+
+    <div class="step">
+      <div class="cap">一步（step），可以重复</div>
+      <div class="f b" data-l="1.2"><div><span class="ev dur">step/start</span></div><div class="t">一步开始</div></div>
+      <div class="f b" data-l="1.1 1.2"><div><span class="ev dur">system/message</span><span class="ev dur">user/message</span></div><div class="t">系统提示词和你的消息<b>到这里才写进日志</b>，然后从日志推导出要发给模型的历史</div></div>
+      <div class="f b" data-l="1.3 1.4"><div><span class="ev wf">llm/stream</span></div><div class="t">经适配器把请求发给模型。插件可以在这里包一层</div></div>
+      <div class="f b" data-l="1.3"><div><span class="ev live">agent/assistant-stream</span></div><div class="t">start、chunk…、end。<b>只在进程内存里</b>，屏幕上逐字出现的就是它</div></div>
+      <div class="f b" data-l="1.2 1.3 1.4 1.5"><div><span class="ev dur">assistant/message</span><span class="ev dur">assistant/attempt</span></div><div class="t">成功就把整段流压成一条 message；失败、重试、取消记成 attempt，<b>不进模型历史</b></div></div>
+      <div class="f b" data-l="2.1"><div><span class="ev dur">tool/call</span></div><div class="t">模型要调的每个工具各记一条</div></div>
+      <div class="f b" data-l="2.2 2.3"><div><span class="ev wf">tools/pre-execute</span><span class="ev wf">tools/execute</span><span class="ev wf">tools/post-execute</span></div><div class="t">执行前把关 → 真正执行 → 执行后处理。谁在把关，留给 2.2</div></div>
+      <div class="f b" data-l="2.1"><div><span class="ev dur">tool/result</span></div><div class="t">每个工具的结果各记一条</div></div>
+      <div class="f b" data-l="1.2"><div><span class="ev dur">step/end</span></div><div class="t">一步结束</div></div>
+    </div>
+    <div class="again">↺ 工具结果还要交给模型，或者又来了新输入 → 再来一步</div>
+
+    <div class="f b"><div><span class="ev wf" style="border-style:double;border-width:3px">agent/turn-stopping</span></div><div class="t">收尾前问一圈插件（serial 事件，没有 <code>next()</code>）</div></div>
+    <div class="f b" data-l="1.2"><div><span class="ev dur">turn/end</span></div><div class="t">一轮结束</div></div>
+  </div>
+
+  <div class="legend">
+    <div class="card"><h3><span class="ev dur">黑底</span> 持久会话事件</h3><p>写进 <code>session.vN.jsonl</code>。刷新、重启后还在，历史靠它们重建。</p></div>
+    <div class="card"><h3><span class="ev live">绿虚线</span> 瞬态事件</h3><p>只在 Host 进程内存里。进程在这一步结算前被强杀，这段流就没了。</p></div>
+    <div class="card"><h3><span class="ev wf">紫框</span> waterfall 扩展点</h3><p>插件可以拦截的地方，像中间件：监听器必须调 <code>next()</code> 才往下传，不调就是截断。</p></div>
+    <div class="card"><h3>为什么这么分</h3><p>实时显示要快，所以 chunk 不落盘；能不能恢复只看持久事件，所以每一步结束时把整段流压进一条 message。</p></div>
+  </div>
+</div>
+<div class="src">来源：docs/architecture.zh.md 的"轮次流程"和"会话日志"两节　·　实现：packages/core/agent-loop/src/agent.ts</div>
+
+<!-- ═════════════ 图 3 ═════════════ -->
+<h2>图 3　贯穿全图的三条规矩</h2>
+<p class="q">图 1 里每一块都遵守这三条。看不懂某块代码时，先问它在这三条里扮演什么。</p>
+
+<div class="rules">
+  <div class="card">
+    <h3>① 一切都是插件</h3>
+    <p>模型适配器、工具注册表、会话日志、连 agent-loop 本身，都是 Cordis 插件。没有需要打补丁的内核。</p>
+    <p>插件做三件事：提供服务（<code>ctx.xxx</code>）、收发事件、做可撤销的注册。插件卸载时，它注册的东西自动撤销。</p>
+    <div class="eg">所以扩展 dsh = 再挂一个插件；改行为 = 用 patch 换掉某个插件的配置。</div>
+  </div>
+  <div class="card">
+    <h3>② 模型可见 ⟺ 已记录</h3>
+    <p>发给模型的每一个请求，都必须能从会话日志重建出来。想让模型多看到一样东西，就得先有一种会话事件来记它。</p>
+    <div class="eg">例：你在 1.1 看到的 <code>clientTimeZone</code> 没放在请求头里，而是跟着消息写进日志，因为模型会看到"用户那边几点"。</div>
+  </div>
+  <div class="card">
+    <h3>③ 一项能力 = 三个角色</h3>
+    <p>接口、实现、使用者分开，换掉实现就能换整个产品的行为。</p>
+    <div class="tri"><span>fs<br>接口</span><i>←</i><span>fs-local<br>实现</span><i>·</i><span>tool-fs<br>给模型用的工具</span></div>
+    <div class="eg">把文件和进程的实现指向远程沙箱，bash、终端、LSP 就一起搬过去了，工具不用改。</div>
+  </div>
+</div>
+
+<table>
+  <tr><th style="width:150px">事件的三个域</th><th>是什么</th><th style="width:38%">什么时候用</th></tr>
+  <tr><td><b>会话事件</b></td><td>追加到日志的持久事实：<code>turn/*</code>、<code>step/*</code>、<code>user/message</code>、<code>assistant/message</code>、<code>tool/*</code></td><td>这件事刷新后还得在</td></tr>
+  <tr><td><b>Agent 事件</b></td><td><code>agent/*</code>，带着正在运行的 Agent：inbox、步骤、请求、续跑</td><td>想观察或拦截进行中的工作</td></tr>
+  <tr><td><b>能力事件</b></td><td><code>fs/*</code>、<code>tools/*</code>、<code>telemetry/*</code></td><td>想给某项能力加策略，又不碰循环</td></tr>
+</table>
+
+<p class="take"><b>怎么用这张图：</b>开始一课前，点上面的课程编号，看亮起的是哪几块、在哪一层；学完回来，确认自己能说出这几块之间传了什么。没亮的块先当黑盒，不用看。</p>
+
+</main>
+<script>
+const LESSONS = {
+  "0.1": "页面上哪些区域是哪个插件提供的？",
+  "0.2": "页面一打开发了哪些请求，WS 上先收到哪些帧？",
+  "1.1": "prompt 的请求体长什么样？回答从哪条 WS 流回来？",
+  "1.2": "一轮对话写了哪些事件，顺序是什么？",
+  "1.3": "SSE 一帧怎么变成屏幕上的一个字？",
+  "1.4": "取消信号怎么从按钮传到 fetch？日志里留下了什么？",
+  "1.5": "刷新后历史怎么恢复成一模一样？",
+  "2.1": "工具调用和结果在日志里是哪两种事件？",
+  "2.2": "审批是在哪个 waterfall 里拦下来的？",
+  "2.3": "多个工具是并发还是串行？",
+  "3.1": "fork 出的新会话继承了什么？",
+  "3.2": "压缩后模型看到的历史怎么变了？原日志还在吗？",
+  "3.3": "模型选择存在哪，什么时候生效？",
+  "4.1": "插件、服务、事件、effect 怎么写？",
+  "4.2": "一个工具需要哪几处注册？",
+  "4.3": "不改源码怎么改行为？",
+  "5": "生产中用到的那几块：subagent、schedule、MCP、skill、jobs、workflow（待定）"
+};
+const main = document.getElementById('m');
+const info = document.getElementById('info');
+const idle = info.innerHTML;
+const chips = [...document.querySelectorAll('.chip')];
+const blocks = [...document.querySelectorAll('.b')];
+function pick(id) {
+  chips.forEach(c => c.setAttribute('aria-pressed', String(c.dataset.id === id)));
+  main.classList.toggle('has-pick', id !== '');
+  let n = 0;
+  blocks.forEach(el => {
+    const on = id !== '' && (el.dataset.l || '').split(' ').includes(id);
+    el.classList.toggle('on', on); if (on) n++;
+  });
+  if (id === '') { info.innerHTML = idle; return; }
+  info.textContent = '';
+  const b = document.createElement('b'); b.textContent = '课 ' + id + '：' + LESSONS[id];
+  info.append(b, '　亮起 ' + n + ' 块，图 1 和图 2 都要看。');
+}
+chips.forEach(c => c.addEventListener('click', () => {
+  pick(c.dataset.id);
+  try { history.replaceState(null, '', c.dataset.id ? '#' + c.dataset.id : location.pathname); } catch (e) { /* 地址栏写不了时不影响高亮 */ }
+}));
+const fromHash = decodeURIComponent(location.hash.slice(1));
+if (Object.hasOwn(LESSONS, fromHash)) pick(fromHash);
+</script>
+</body>
+</html>

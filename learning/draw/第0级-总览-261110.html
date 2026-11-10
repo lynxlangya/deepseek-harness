@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dsh 第 0 级总览</title>
+<style>
+:root {
+  --bg: #f7f6f2; --card: #ffffff; --ink: #1d1f23; --muted: #646a73; --line: #d9d6cc;
+  --soft: #efede6; --code-bg: #f0eee7;
+  --a: #b45309; --a-bg: #fdf3e1;   /* ① 代码 */
+  --b: #1d5fb8; --b-bg: #e8f0fc;   /* ② 一问一答 */
+  --c: #17794a; --c-bg: #e5f4ec;   /* ③ 订阅 */
+  --bad: #b3261e; --bad-bg: #fbe9e7;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16181c; --card: #1f2227; --ink: #e8e6e1; --muted: #9aa0a9; --line: #383c44;
+    --soft: #262a30; --code-bg: #2a2e35;
+    --a: #f0b354; --a-bg: #3a2c12; --b: #7fb0f5; --b-bg: #17283f; --c: #6fcf9a; --c-bg: #15301f;
+    --bad: #f28b82; --bad-bg: #3b1d1a;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.65 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+main { max-width: 980px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 26px; margin: 0 0 4px; }
+h2 { font-size: 19px; margin: 44px 0 4px; }
+.lede { color: var(--muted); margin: 0 0 8px; }
+.q { color: var(--muted); margin: 0 0 14px; }
+code, .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.88em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.take { border-left: 4px solid var(--ink); background: var(--soft); padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 14px 0 0; }
+.take b { font-weight: 650; }
+.src { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+.badge { display: inline-block; font-size: 11.5px; padding: 0 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); vertical-align: 1px; }
+
+/* 两个问题 */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+.two .card b { display: block; font-size: 16px; }
+.two .card span { color: var(--muted); }
+
+/* 图 1：一屏 */
+.screen { position: relative; border: 2px solid var(--ink); border-radius: 12px; padding: 34px 10px 10px; background: var(--soft); }
+.screen > .tag { position: absolute; top: 7px; left: 12px; font-size: 12.5px; }
+.cols { display: grid; grid-template-columns: 1.15fr 2.5fr 1.35fr; gap: 8px; }
+.slot { background: var(--card); border: 1.5px solid var(--line); border-radius: 8px; padding: 10px 12px; min-height: 250px; position: relative; }
+.slot .name { font-weight: 700; font-size: 15px; }
+.slot .by { margin: 6px 0 2px; }
+.slot .note { color: var(--muted); font-size: 13px; }
+.slot.bottom { min-height: 0; margin-top: 8px; }
+.keys { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.keys span { border: 1.5px dashed var(--line); border-radius: 6px; padding: 2px 8px; font-size: 12.5px; color: var(--muted); }
+.keys span.on { border-style: solid; border-color: var(--ink); color: var(--ink); background: var(--soft); }
+.leading { display: inline-block; border: 1.5px dashed var(--muted); border-radius: 6px; padding: 2px 8px; font-size: 12.5px; margin-bottom: 10px; }
+.overlay { position: absolute; right: 22px; bottom: 74px; width: 290px; background: var(--card); border: 1.5px dashed var(--ink); border-radius: 8px; padding: 8px 12px; box-shadow: 0 6px 18px rgba(0,0,0,.16); }
+.kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; font-size: 13.5px; }
+.kinds div { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--card); }
+.links { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.links h3 { margin: 0 0 4px; font-size: 15px; }
+.links ul { margin: 6px 0 0; padding-left: 18px; }
+.links li { margin: 2px 0; }
+
+/* 图 2：三路 */
+.lane { display: grid; grid-template-columns: 1fr minmax(210px, 1.05fr) 1fr; gap: 10px; align-items: center; padding: 14px 0; border-top: 1px dashed var(--line); }
+.lane:first-of-type { border-top: 0; }
+.heads { display: grid; grid-template-columns: 1fr minmax(210px, 1.05fr) 1fr; gap: 10px; font-weight: 700; text-align: center; padding-bottom: 6px; }
+.box { border-radius: 8px; padding: 9px 12px; border: 1.5px solid var(--k); background: var(--kbg); }
+.box b { color: var(--k); }
+.box .note { font-size: 13px; color: var(--muted); }
+.arrow { text-align: center; color: var(--k); font-size: 13px; }
+.arrow .lbl { font-weight: 700; display: block; }
+.arrow .sub { display: block; color: var(--muted); }
+.arrow i { display: block; height: 2px; background: var(--k); position: relative; margin: 7px 8px; }
+.arrow i::after, .arrow i.both::before { content: ""; position: absolute; top: -5px; border-top: 6px solid transparent; border-bottom: 6px solid transparent; }
+.arrow i::after { right: -8px; border-left: 9px solid var(--k); }
+.arrow i.back::after { right: auto; left: -8px; border-left: 0; border-right: 9px solid var(--k); }
+.arrow i.both::before { left: -8px; border-right: 9px solid var(--k); }
+.ka { --k: var(--a); --kbg: var(--a-bg); } .kb { --k: var(--b); --kbg: var(--b-bg); } .kc { --k: var(--c); --kbg: var(--c-bg); }
+.num { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; background: var(--k); color: var(--card); font-weight: 700; font-size: 13px; margin-right: 6px; }
+.streams { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+.streams div { border: 1.5px solid var(--c); background: var(--c-bg); border-radius: 6px; padding: 5px 8px; font-size: 12.5px; }
+.streams div b { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: var(--c); }
+.streams div.star { border-width: 2.5px; }
+.frames { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; }
+.frames span { border: 1.5px solid var(--c); border-radius: 6px; padding: 2px 9px; }
+.frames span.full { background: var(--c); color: var(--card); font-weight: 700; }
+
+/* 图 3：时序 */
+svg text { fill: var(--ink); font-family: -apple-system, "PingFang SC", system-ui, sans-serif; font-size: 13px; }
+svg .m { fill: var(--muted); } svg .ok { fill: var(--c); font-weight: 700; } svg .no { fill: var(--bad); font-weight: 700; }
+svg .axis { stroke: var(--muted); stroke-width: 1.5; }
+.tl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tl .card { padding: 14px; }
+.tl h3 { margin: 0 0 2px; font-size: 15px; }
+.tl .res { margin-top: 4px; font-size: 13.5px; border-radius: 6px; padding: 6px 10px; }
+.tl .res.ok { background: var(--c-bg); color: var(--c); } .tl .res.no { background: var(--bad-bg); color: var(--bad); }
+
+details { border: 1px solid var(--line); border-radius: 8px; padding: 9px 14px; margin-top: 8px; background: var(--card); }
+summary { cursor: pointer; font-weight: 600; }
+details p { margin: 8px 0 2px; }
+
+@media (max-width: 700px) {
+  .two, .cols, .kinds, .links, .tl, .lane, .heads { grid-template-columns: 1fr; }
+  .heads { display: none; }
+  .slot { min-height: 0; }
+  .overlay { position: static; width: auto; margin-top: 8px; box-shadow: none; }
+  .streams { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<main>
+
+<h1>dsh 第 0 级总览：跑起来，看懂一屏</h1>
+<p class="lede">对应路线文件的 0.1 和 0.2。基于本地 <code>feat/learn</code>（0.2.2-rc.1），画于 2026-11-10。</p>
+
+<div class="two">
+  <div class="card"><b>0.1　屏幕上的东西是谁放的？</b><span>位置由 ui-layout 声明，内容由各插件填。→ 图 1</span></div>
+  <div class="card"><b>0.2　数据是怎么来的？</b><span>分三路：代码、一问一答、订阅。→ 图 2、图 3</span></div>
+</div>
+
+<!-- ───────────── 图 1 ───────────── -->
+<h2>图 1　一屏 = 一个框架 + 6 个位置</h2>
+<p class="q">框架只管"哪里有个位置"，不知道位置里会放什么。每个位置里的内容，是别的插件自己注册进来的。</p>
+
+<div class="screen">
+  <span class="tag"><code>root</code>　运行时唯一内置的位置　←　<b>ui-layout</b> 把 <code>AppFrame</code> 放进来，并声明下面 6 个位置</span>
+  <div class="cols">
+    <div class="slot">
+      <div class="name mono">sidebar</div><span class="badge">single</span>
+      <div class="by">← <b>ui-sidebar</b></div>
+      <div class="note">整个左栏。会话列表、设置入口都在它内部再声明的小位置里。</div>
+    </div>
+    <div class="slot">
+      <span class="leading"><span class="mono">shell.leading</span>　<span class="badge">single</span>　← ui-sidebar 的"展开侧栏 / 新会话"按钮，侧栏收起或窄屏时才出现</span>
+      <div class="name mono">main</div><span class="badge">keyed</span>
+      <div class="by">← 多个插件各注册一个 key，<b>一次只显示一个</b></div>
+      <div class="keys">
+        <span class="on">conversation ← ui-conversation</span>
+        <span>ui-plugin-manager</span>
+        <span>ui-schedule</span>
+        <span>…</span>
+      </div>
+      <div class="note" style="margin-top:8px">点左栏的入口，就是换 key。</div>
+    </div>
+    <div class="slot">
+      <div class="name mono">rightbar</div><span class="badge">single</span>
+      <div class="by">← <b>ui-sidebar-right</b></div>
+      <div class="note">右栏。显示不显示、占多宽，由它自己通过 <code>ctx.layout</code> 上报。</div>
+    </div>
+  </div>
+  <div class="slot bottom">
+    <span class="name mono">shell.bottom</span> <span class="badge">single</span>
+    <span class="note">　横跨三栏的底部条。没内容时不占高度。</span>
+  </div>
+  <div class="overlay">
+    <span class="name mono"><b>shell.overlay</b></span> <span class="badge">list</span>
+    <div class="note">浮在所有栏上面的一层。toast、右键菜单、快捷键面板各加一项，互不替换。</div>
+  </div>
+</div>
+<div class="src">位置声明：packages/client/ui-layout/src/client/index.ts:193-201　·　渲染位置：AppFrame.tsx:273-326</div>
+
+<div class="kinds">
+  <div><span class="badge">single</span>　只有一个占位者。再注册一个就是<b>替换</b>。</div>
+  <div><span class="badge">keyed</span>　可以注册多个，按 key <b>选一个</b>显示。</div>
+  <div><span class="badge">list</span>　可以注册多个，<b>全部</b>同时显示。</div>
+</div>
+
+<div class="links">
+  <div class="card">
+    <h3>插件之间的第一种关系：位置（拼界面）</h3>
+    <ul>
+      <li>插件写 <code>ctx.slots.inject('sidebar', …)</code>：等这个位置被声明了，才注册进去。</li>
+      <li>位置被卸载，注册自动撤销。</li>
+      <li>插件之间不互相 import 组件。</li>
+    </ul>
+    <div class="src">例：packages/client/ui-sidebar/src/client/index.ts:88</div>
+  </div>
+  <div class="card">
+    <h3>插件之间的第二种关系：服务（讲依赖）</h3>
+    <ul>
+      <li>关掉 ui-layout：24 个插件等不到 <code>layout</code> 服务，停在 pending。</li>
+      <li>关掉 ui-sidebar-right：11 个插件等不到它的服务。</li>
+      <li>卡住的里面有 7 个必需插件之一（如 ui-chat、ui-sidebar），页面拒绝启动；否则只打警告。</li>
+    </ul>
+    <div class="src">必需名单：packages/client/web/src/boot-client.ts:25-33，拒绝启动：同文件 :128</div>
+  </div>
+</div>
+
+<p class="take"><b>记一句：</b>界面是"拼"出来的。ui-layout 只画格子，格子里是谁、有没有人，由插件自己决定；少了某个插件，依赖它的插件会停住，而不是报错崩掉。</p>
+
+<!-- ───────────── 图 2 ───────────── -->
+<h2>图 2　数据分三路来</h2>
+<p class="q">判断一份数据走哪一路，只问一个问题：<b>它拿到之后还会不会自己变？</b></p>
+
+<div class="card">
+  <div class="heads"><div>浏览器</div><div></div><div>Host（本机 127.0.0.1:3080）</div></div>
+
+  <div class="lane ka">
+    <div class="box"><b><span class="num">1</span>拿代码</b><div class="note">读 HTML 里的 <code>window.__DSH_BOOT__</code>，知道要加载哪些插件，再去下载。</div></div>
+    <div class="arrow">
+      <span class="lbl">GET /</span><i class="both"></i>
+      <span class="lbl" style="margin-top:8px">GET /plugins/??a,b,c…</span><i class="both"></i>
+      <span class="sub">多个插件合并成一次下载</span>
+    </div>
+    <div class="box"><b>插件图 + 插件代码</b><div class="note">只在打开页面时拿一次。</div></div>
+  </div>
+
+  <div class="lane kb">
+    <div class="box"><b><span class="num">2</span>一问一答</b><div class="note">读配置和目录：模型、凭据、skill、预设。<br>第 1 级的 <code>session/prompt</code> 也走这一路。</div></div>
+    <div class="arrow">
+      <span class="lbl">HTTP POST /api/&lt;ns&gt;/&lt;method&gt;</span><i class="both"></i>
+      <span class="sub">问一次，答一次，结束</span>
+    </div>
+    <div class="box"><b>Remote 方法</b><div class="note">不会自己变的东西，拿一次就够。</div></div>
+  </div>
+
+  <div class="lane kc">
+    <div class="box"><b><span class="num">3</span>订阅</b><div class="note">会话、工作区这类<b>随时会变</b>的状态。浏览器不轮询，等 Host 推。</div></div>
+    <div class="arrow">
+      <span class="lbl">WebSocket /api/remote.mux</span><i class="both"></i>
+      <span class="sub">只有一条连接，上面跑多条逻辑流</span>
+    </div>
+    <div class="box"><b>持续推送</b><div class="note">帧：<code>{type, streamId, endpoint, payload}</code><br>type 是 open / item / cancel。</div></div>
+  </div>
+
+  <div class="kc" style="border-top:1px dashed var(--line); padding-top:12px">
+    <b style="color:var(--c)">这一条 WebSocket 上，页面打开时开了 7 条逻辑流：</b>
+    <div class="streams">
+      <div><b>workspace/follow</b>工作区与会话列表</div>
+      <div><b>session/control</b>所有会话的摘要</div>
+      <div><b>session/follow</b>当前会话的日志</div>
+      <div><b>job/list</b>后台任务</div>
+      <div><b>account/watch</b>账号</div>
+      <div><b>remoteAccess/follow</b>远程访问</div>
+      <div class="star"><b>$events</b>事件通道，带 <code>ready</code> 信号（见图 3）</div>
+    </div>
+    <div class="frames">
+      每条流都是同一个节奏：
+      <span class="full">首帧：全量（baseline 或 snapshot）</span> →
+      <span>增量</span> → <span>增量</span> → <span>…</span>
+    </div>
+  </div>
+</div>
+
+<p class="take"><b>记一句：</b>不会变的用 HTTP 问一次；会变的在 WebSocket 上订阅，先收一份全量，之后只收变化。</p>
+
+<!-- ───────────── 图 3 ───────────── -->
+<h2>图 3　为什么要"先订阅增量，再拿全量"</h2>
+<p class="q">假设页面加载过程中，恰好有一件事 X 发生了（比如某个会话跑完了）。两种顺序的结果不一样。</p>
+
+<div class="tl">
+  <div class="card">
+    <h3>dsh 的顺序：先订阅，再拿全量</h3>
+    <svg viewBox="0 0 440 150" width="100%" role="img" aria-label="先订阅增量再拿全量的时间线">
+      <line class="axis" x1="20" y1="70" x2="420" y2="70"/>
+      <polygon points="420,65 430,70 420,75" fill="var(--muted)"/>
+      <rect x="62" y="64" width="350" height="12" rx="6" fill="var(--c)" opacity=".28"/>
+      <circle cx="62" cy="70" r="7" fill="var(--c)"/>
+      <text x="62" y="42" text-anchor="middle">① $events</text>
+      <text x="62" y="58" text-anchor="middle" class="m">收到 ready</text>
+      <circle cx="210" cy="70" r="9" fill="var(--a)"/>
+      <text x="210" y="74.5" text-anchor="middle" style="fill:var(--card);font-weight:700">X</text>
+      <text x="210" y="98" text-anchor="middle" class="ok">X 被增量通道接住</text>
+      <circle cx="340" cy="70" r="7" fill="var(--b)"/>
+      <text x="340" y="42" text-anchor="middle">② 重开 session/control</text>
+      <text x="340" y="58" text-anchor="middle" class="m">首帧拿全量</text>
+      <text x="237" y="120" text-anchor="middle" class="m">绿色这一段：增量通道一直开着</text>
+      <text x="20" y="143" class="m">时间 →</text>
+    </svg>
+    <div class="res ok">X 不会丢：它要么已经在全量里，要么从增量通道到达。</div>
+  </div>
+  <div class="card">
+    <h3>反过来：先拿全量，再订阅</h3>
+    <svg viewBox="0 0 440 150" width="100%" role="img" aria-label="先拿全量再订阅的时间线">
+      <line class="axis" x1="20" y1="70" x2="420" y2="70"/>
+      <polygon points="420,65 430,70 420,75" fill="var(--muted)"/>
+      <rect x="340" y="64" width="72" height="12" rx="6" fill="var(--c)" opacity=".28"/>
+      <rect x="69" y="64" width="264" height="12" rx="6" fill="var(--bad)" opacity=".22"/>
+      <circle cx="62" cy="70" r="7" fill="var(--b)"/>
+      <text x="62" y="42" text-anchor="middle">① 拿全量</text>
+      <text x="62" y="58" text-anchor="middle" class="m">里面没有 X</text>
+      <circle cx="210" cy="70" r="9" fill="var(--a)"/>
+      <text x="210" y="74.5" text-anchor="middle" style="fill:var(--card);font-weight:700">X</text>
+      <text x="210" y="98" text-anchor="middle" class="no">X 发生时没人在听</text>
+      <circle cx="340" cy="70" r="7" fill="var(--c)"/>
+      <text x="340" y="42" text-anchor="middle">② 开始订阅</text>
+      <text x="340" y="58" text-anchor="middle" class="m">X 已经过去了</text>
+      <text x="201" y="120" text-anchor="middle" class="m">红色这一段：发生的事都收不到</text>
+      <text x="20" y="143" class="m">时间 →</text>
+    </svg>
+    <div class="res no">X 丢了：界面停在旧状态，直到下次刷新。</div>
+  </div>
+</div>
+<div class="src">连接就绪后重开 control 流：packages/api/session-controller/src/client/index.ts:131-137（<code>control.restart()</code>）</div>
+
+<p class="take"><b>记一句：</b>先把"听变化"的通道接好，再去拿当前状态。两步之间发生的事才不会漏。</p>
+
+<!-- ───────────── 自测 ───────────── -->
+<h2>盖住图，自己答一遍</h2>
+<details>
+  <summary>1. 想加一个全局提示条，应该注册到哪个位置？为什么不是 <code>main</code>？</summary>
+  <p><code>shell.overlay</code>。它是 list，加一项不影响别人。<code>main</code> 是 keyed，一次只显示一个 key，注册进去只有切到你的 key 时才看得到。</p>
+</details>
+<details>
+  <summary>2. 模型列表走 HTTP，会话列表走 WebSocket，为什么不一样？</summary>
+  <p>模型列表拿到后不会自己变，问一次就够。会话列表随时会变（新建、跑完、改名），所以要订阅，由 Host 推。</p>
+</details>
+<details>
+  <summary>3. 关掉 ui-sidebar-right，页面会白屏吗？</summary>
+  <p>不会。依赖它的 11 个插件停在 pending，但它们都不在 7 个必需插件里，所以只打警告，页面照常启动，只是没有右栏。</p>
+</details>
+<details>
+  <summary>4.（还没学，留着）图 3 里 X 可能既在全量里、又从增量通道到达。客户端收到两次怎么办？</summary>
+  <p>这个问题第 0 级没有回答。学到第 1 级的 1.5（刷新后的 baseline 和 revision）时回来填。</p>
+</details>
+
+<p class="take" style="margin-top:28px"><b>接到第 1 级：</b>接下来发一句"你好"，请求走的是图 2 的第 2 路（<code>POST /api/session/prompt</code>），回答从第 3 路的 <code>session/follow</code> 这条流回来。</p>
+
+</main>
+</body>
+</html>
