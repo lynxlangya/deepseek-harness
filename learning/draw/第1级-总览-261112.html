@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dsh 第 1 级总览</title>
+<style>
+:root {
+  --bg: #f7f6f2; --card: #ffffff; --ink: #1d1f23; --muted: #646a73; --line: #d9d6cc;
+  --soft: #efede6; --code-bg: #f0eee7;
+  --a: #b45309; --a-bg: #fdf3e1;   /* 落盘 / seq */
+  --b: #1d5fb8; --b-bg: #e8f0fc;   /* HTTP 一问一答 */
+  --c: #17794a; --c-bg: #e5f4ec;   /* 流 / revision */
+  --bad: #b3261e; --bad-bg: #fbe9e7; /* 停止 */
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16181c; --card: #1f2227; --ink: #e8e6e1; --muted: #9aa0a9; --line: #383c44;
+    --soft: #262a30; --code-bg: #2a2e35;
+    --a: #f0b354; --a-bg: #3a2c12; --b: #7fb0f5; --b-bg: #17283f; --c: #6fcf9a; --c-bg: #15301f;
+    --bad: #f28b82; --bad-bg: #3b1d1a;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #16181c; --card: #1f2227; --ink: #e8e6e1; --muted: #9aa0a9; --line: #383c44;
+  --soft: #262a30; --code-bg: #2a2e35;
+  --a: #f0b354; --a-bg: #3a2c12; --b: #7fb0f5; --b-bg: #17283f; --c: #6fcf9a; --c-bg: #15301f;
+  --bad: #f28b82; --bad-bg: #3b1d1a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.65 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+main { max-width: 980px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 26px; margin: 0 0 4px; }
+h2 { font-size: 19px; margin: 44px 0 4px; }
+h3 { font-size: 15px; margin: 0 0 4px; }
+.lede { color: var(--muted); margin: 0 0 8px; }
+.q { color: var(--muted); margin: 0 0 14px; }
+code, .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.88em; overflow-wrap: anywhere; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+a { color: inherit; text-decoration-color: var(--muted); text-underline-offset: 2px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.take { border-left: 4px solid var(--ink); background: var(--soft); padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 14px 0 0; }
+.take b { font-weight: 650; }
+.src { color: var(--muted); font-size: 12.5px; margin-top: 6px; overflow-wrap: anywhere; }
+.src a { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.badge { display: inline-block; font-size: 11.5px; padding: 0 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); vertical-align: 1px; white-space: nowrap; }
+.note { color: var(--muted); font-size: 13px; }
+.ka { --k: var(--a); --kbg: var(--a-bg); } .kb { --k: var(--b); --kbg: var(--b-bg); }
+.kc { --k: var(--c); --kbg: var(--c-bg); } .kx { --k: var(--bad); --kbg: var(--bad-bg); }
+
+/* 五个问题 */
+.five { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 18px; }
+.five .card { padding: 12px 14px; }
+.five b { display: block; font-size: 15px; }
+.five span { color: var(--muted); font-size: 13.5px; }
+
+/* 图 1：主线 */
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--k); margin-right: 5px; vertical-align: -1px; }
+.flowwrap { display: grid; grid-template-columns: 1fr 230px; gap: 12px; align-items: start; }
+.heads3, .r { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.heads3 { font-weight: 700; text-align: center; padding-bottom: 6px; font-size: 14px; }
+.heads3 .note { display: block; font-weight: 400; }
+.r { padding: 6px 0; }
+.c1 { grid-column: 1; } .c2 { grid-column: 2; } .c3 { grid-column: 3; }
+.c12 { grid-column: 1 / 3; } .c23 { grid-column: 2 / 4; } .call { grid-column: 1 / 4; }
+.st { background: var(--card); border: 1.5px solid var(--line); border-radius: 8px; padding: 9px 12px; }
+.st .t { font-weight: 700; }
+.st .badge { margin-right: 4px; }
+.st .tag { float: right; font-size: 11.5px; border-radius: 99px; padding: 0 7px; background: var(--kbg); color: var(--k); font-weight: 600; margin-left: 6px; }
+.hop { text-align: center; color: var(--k); font-size: 13px; padding: 0 6px; }
+.hop .lbl { font-weight: 700; display: block; }
+.hop .sub { display: block; color: var(--muted); }
+.hop i { display: block; height: 2px; background: var(--k); position: relative; margin: 6px 10px; }
+.hop i::after { content: ""; position: absolute; top: -5px; right: -8px; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 9px solid var(--k); }
+.hop i.back::after { right: auto; left: -8px; border-left: 0; border-right: 9px solid var(--k); }
+.hop i.both::before { content: ""; position: absolute; top: -5px; left: -8px; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-right: 9px solid var(--k); }
+.chain { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; font-size: 12.5px; }
+.chain code { background: var(--kbg, var(--code-bg)); color: var(--k, var(--ink)); border: 1px solid var(--k, var(--line)); }
+.chain .to { color: var(--muted); }
+.fork { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.fork .st { border-color: var(--k); background: var(--kbg); }
+.fork .st .t { color: var(--k); }
+.aside { position: sticky; top: 12px; border: 1.5px dashed var(--ink); border-radius: 10px; padding: 12px 14px; background: var(--card); font-size: 13.5px; }
+.aside h3 { margin-bottom: 8px; }
+.aside .one { border-left: 3px solid var(--k); padding: 2px 0 2px 9px; margin: 8px 0; }
+.aside .one b { color: var(--k); font-family: ui-monospace, Menlo, monospace; }
+
+/* 图 2：一轮的日志 */
+.log { display: flex; flex-direction: column; gap: 6px; }
+.ev { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.ev code { display: inline-block; }
+.ev .note { font-size: 13.5px; }
+.loop { border: 1.5px dashed var(--a); border-radius: 8px; padding: 8px 10px 10px; margin: 2px 0; }
+.loop > .lbl { font-size: 12.5px; color: var(--a); font-weight: 700; display: block; margin-bottom: 4px; }
+.ctx { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 6px; }
+.ctx div { border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font-size: 12.5px; background: var(--card); }
+.ctx b { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.why { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+
+/* 图 3：四站 + 两套编号 */
+.stations { display: grid; grid-template-columns: 0.8fr repeat(4, 1fr); gap: 0; align-items: stretch; }
+.sta { position: relative; border: 1.5px solid var(--c); background: var(--c-bg); border-radius: 8px; padding: 8px 10px; margin-right: 18px; font-size: 13px; }
+.sta:last-child { margin-right: 0; }
+.sta:not(:last-child)::after { content: "→"; position: absolute; right: -16px; top: 50%; transform: translateY(-50%); color: var(--c); font-weight: 700; }
+.sta b { display: block; color: var(--c); font-size: 13.5px; }
+.sta.src0 { border-style: dashed; background: var(--card); }
+.sta .num { display: inline-block; width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 50%; background: var(--c); color: var(--card); font-weight: 700; font-size: 12px; margin-right: 4px; }
+.cmp { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 4px; }
+.cmp th, .cmp td { border-top: 1px solid var(--line); padding: 7px 8px; text-align: left; vertical-align: top; }
+.cmp thead th { border-top: 0; }
+.cmp th:first-child { color: var(--muted); font-weight: 600; width: 110px; }
+.cmp.narrow th:first-child { width: 76px; }
+.cmp .hseq { color: var(--a); } .cmp .hrev { color: var(--c); }
+.strip { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-top: 12px; font-size: 12.5px; }
+.strip span { border-radius: 6px; padding: 2px 8px; border: 1.5px solid var(--k); background: var(--kbg); white-space: nowrap; }
+.strip span.fat { font-weight: 700; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+
+/* 图 4：停止 */
+.steps { display: flex; flex-direction: column; gap: 0; }
+.step { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; position: relative; padding-bottom: 12px; }
+.step:not(:last-child)::before { content: ""; position: absolute; left: 12px; top: 26px; bottom: 0; width: 2px; background: var(--bad); opacity: .45; }
+.step .dot { width: 26px; height: 26px; border-radius: 50%; background: var(--bad); color: var(--card); font-weight: 700; font-size: 13px; text-align: center; line-height: 26px; }
+.step .body .t { font-weight: 700; }
+.branch { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.branch > div { border-radius: 8px; padding: 9px 12px; border: 1.5px solid var(--k); background: var(--kbg); font-size: 13.5px; }
+.branch b { color: var(--k); }
+
+/* 图 5：刷新 */
+.snap { border: 2px solid var(--c); border-radius: 10px; padding: 8px 10px 10px; background: var(--soft); }
+.snap > .tag { display: block; margin: 0 2px 8px; font-size: 12.5px; color: var(--c); font-weight: 700; }
+.snapcols { display: grid; grid-template-columns: 0.8fr 0.8fr 1.4fr 1.4fr; gap: 8px; }
+.snapcols > div { background: var(--card); border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+.snapcols > div b { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+.snapcols .cut { border-color: var(--k); }
+.snapcols .cut b { color: var(--k); }
+.after { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; }
+.after div { border: 1.5px dashed var(--k); border-radius: 8px; padding: 7px 10px; }
+.after b { color: var(--k); }
+
+details { border: 1px solid var(--line); border-radius: 8px; padding: 9px 14px; margin-top: 8px; background: var(--card); }
+summary { cursor: pointer; font-weight: 600; }
+details p { margin: 8px 0 2px; }
+
+@media (max-width: 860px) {
+  .five { grid-template-columns: 1fr 1fr; }
+  .flowwrap { grid-template-columns: 1fr; }
+  .aside { position: static; }
+  .stations { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sta { margin-right: 0; }
+  .sta:not(:last-child)::after { display: none; }
+}
+@media (max-width: 700px) {
+  .five, .fork, .why, .two, .branch, .after, .snapcols, .stations, .ctx { grid-template-columns: 1fr; }
+  .heads3 { display: none; }
+  .r { grid-template-columns: 1fr; padding: 4px 0; }
+  .c1, .c2, .c3, .c12, .c23, .call { grid-column: 1; }
+  .st[data-lane]::before { content: attr(data-lane); display: block; font-size: 11.5px; color: var(--muted); margin-bottom: 2px; }
+  .hop i { display: none; }
+  .hop { text-align: left; border-left: 2px solid var(--k); margin-left: 14px; padding: 2px 0 2px 10px; }
+  .ev { grid-template-columns: 1fr; gap: 0; }
+  .cmp th:first-child { width: 72px; }
+}
+</style>
+</head>
+<body>
+<main>
+
+<h1>dsh 第 1 级总览：一条消息的旅程</h1>
+<p class="lede">对应路线文件的 1.1–1.5，内容只取自这五课的结论。基于本地 <code>feat/learn</code>，画于 2026-11-12。</p>
+
+<div class="five">
+  <div class="card"><b>1.1　发出去</b><span>发出走 HTTP，回答走 WS，靠 <code>requestId</code> 对上。→ 图 1</span></div>
+  <div class="card"><b>1.2　写日志</b><span>一轮 = 多步，每步一次模型调用，每步结束就落盘。→ 图 2</span></div>
+  <div class="card"><b>1.3　逐字出现</b><span>到一帧推一帧，一步结束才落盘。→ 图 3</span></div>
+  <div class="card"><b>1.4　停止</b><span>掐断一个 AbortSignal，已收到的部分照样落盘。→ 图 4</span></div>
+  <div class="card"><b>1.5　刷新</b><span>只断浏览器这头，Host 现场拼快照。→ 图 5</span></div>
+</div>
+
+<!-- ───────────── 图 1 ───────────── -->
+<h2>图 1　主线：从点发送到落盘</h2>
+<p class="q">三方：浏览器、Host（<code>dsh web</code> 起的那个 Node 进程）、DeepSeek。Host 持有到 DeepSeek 的 SSE、写会话日志、生产各条流。</p>
+
+<div class="legend">
+  <span class="kb">HTTP 一问一答</span><span class="kc">流（SSE / WS），按 revision 编号</span><span class="ka">落盘进 jsonl，按 seq 编号</span><span class="kx">停止</span>
+</div>
+
+<div class="flowwrap">
+<div class="card">
+  <div class="heads3"><div>浏览器</div><div>Host<span class="note">dsh web 的 Node 进程</span></div><div>DeepSeek</div></div>
+
+  <div class="r"><div class="st c1" data-lane="浏览器">
+    <span class="badge">1.1</span><span class="t">点发送</span>
+    <div class="note">先生成 <code>requestId</code>（<code>beginSubmission</code>）。它必须由会重发的浏览器事先生成。</div>
+  </div></div>
+
+  <div class="r"><div class="hop kb c12">
+    <span class="lbl">浏览器 → Host　POST /api/session/prompt</span><i></i>
+    <span class="sub">信封 <code>{type, rpcId, method, payload.args.request}</code></span>
+  </div></div>
+
+  <div class="r"><div class="st c2 kb" data-lane="Host">
+    <span class="tag">去重</span><span class="badge">1.1</span><span class="t">收下</span>
+    <div class="note"><code>request</code> 5 个字段：<code>requestId</code>、<code>sessionId</code>、<code>mode</code>、<code>content</code>、<code>clientTimeZone</code>。同一个 <code>requestId</code> 再来直接回 accepted，不重复入队（<code>hasPromptRequest</code>）。</div>
+  </div></div>
+
+  <div class="r"><div class="hop kb c12">
+    <span class="lbl">Host → 浏览器　只回 {accepted:true}</span><i class="back"></i>
+    <span class="sub">回答不走这里，走早已打开的 WS <code>session/follow</code></span>
+  </div></div>
+
+  <div class="r"><div class="st c2 ka" data-lane="Host">
+    <span class="tag">seq</span><span class="badge">1.2</span><span class="t">开一轮，写日志</span>
+    <div class="chain ka"><code>agent/inbox/spliced</code><span class="to">→</span><code>turn/start</code><span class="to">→</span><code>step/start</code><span class="to">→</span><span class="note">本步给模型的消息</span></div>
+    <div class="note" style="margin-top:4px"><code>requestId</code> 记进用户原文的 <code>source.rpcId</code>。</div>
+  </div></div>
+
+  <div class="r"><div class="hop kc c23">
+    <span class="lbl">Host ⇄ DeepSeek　请求 / SSE 字节流</span><i class="both"></i>
+    <span class="sub">开工时就把 AbortSignal 传给这次请求（见图 4）</span>
+  </div></div>
+
+  <div class="r"><div class="st c2 kc" data-lane="Host">
+    <span class="tag">revision</span><span class="badge">1.3</span><span class="t">推流：到一帧推一帧</span>
+    <div class="note">切成 <code>StreamChunk</code> → <code>live.push</code>，<code>revision</code> +1 → session-controller 累积进内存，同时推给每个已连接的浏览器。</div>
+  </div></div>
+
+  <div class="r"><div class="hop kc c12">
+    <span class="lbl">Host → 浏览器　WS session/follow</span><i class="back"></i>
+    <span class="sub"><code>acceptFrame</code> → React 渲染</span>
+  </div></div>
+
+  <div class="r"><div class="st c2 ka" data-lane="Host">
+    <span class="tag">seq</span><span class="badge">1.2</span><span class="t">一步结束才落盘</span>
+    <div class="chain ka"><code>assistant/message</code><span class="to">→</span><code>tool/call</code><span class="to">→</span><code>tool/result</code><span class="to">→</span><code>step/end</code></div>
+    <div class="note" style="margin-top:4px">有工具调用就进下一步；某步只回文字，就 <code>turn/end</code>（completed / aborted）。</div>
+  </div></div>
+
+  <div class="fork">
+    <div class="st kx"><span class="badge">1.4</span><span class="t">岔路：点停止</span>
+      <div class="note"><code>POST /api/session/cancel</code> → Host 掐断那一个 AbortSignal，fetch 断，已收到的照样落盘。→ 图 4</div></div>
+    <div class="st kc"><span class="badge">1.5</span><span class="t">岔路：刷新页面</span>
+      <div class="note">只断浏览器这头，不 abort。重连后 <code>session/follow</code> 首帧是 Host 现场拼的 snapshot。→ 图 5</div></div>
+  </div>
+</div>
+
+<aside class="aside">
+  <h3>两套编号，别混</h3>
+  <div class="one ka"><b>seq</b><br>已提交、写进 jsonl 的 <code>event</code>。落盘就有，Host 重启也在。</div>
+  <div class="one kc"><b>revision</b><br>模型正在说的草稿 <code>assistant-stream</code>，只在 Host 内存。每个 Agent 一个计数器，跨 step 一直加，Host 重启后清零。</div>
+  <div class="note">连接点：草稿的 <code>start</code> 帧带 <code>startedAfterSeq</code>，标明它接在哪条已提交事件之后。刷新时两者各有一个切口：<code>cursor</code>（seq）和 <code>ordinal</code>（图 5）。</div>
+</aside>
+</div>
+
+<div class="src">
+  <a href="../../packages/api/session-controller/src/client/sessions/session.ts">packages/api/session-controller/src/client/sessions/session.ts</a> <code>beginSubmission</code>　·
+  <a href="../../packages/api/session-controller/src/commands.ts">packages/api/session-controller/src/commands.ts</a> <code>hasPromptRequest</code>　·
+  分层表：<a href="../../docs/subsystems/web-client.zh.md">docs/subsystems/web-client.zh.md</a>
+</div>
+
+<div class="two">
+  <div class="card">
+    <h3>两个 ID 分两层</h3>
+    <ul style="margin:4px 0 0;padding-left:18px">
+      <li>外层 <code>rpcId</code>：管这一次网络调用。</li>
+      <li>里层 <code>requestId</code>：管"用户发的这一条消息"，Host 记进日志 <code>source.rpcId</code>，用来去重。</li>
+      <li>浏览器不自动重发；手动再点一次会生成新 ID，模型会回答两次。</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3><code>request</code> 里值得记的两个字段</h3>
+    <ul style="margin:4px 0 0;padding-left:18px">
+      <li><code>mode</code>：<code>queue</code> 自成新一轮；<code>steer</code> 在当前轮下一个 step 边界并入，不打断正在进行的调用。</li>
+      <li><code>content</code>：数组，可混 text / image / file；空数组表示让失败停下的会话继续。</li>
+      <li><code>clientTimeZone</code> 写进消息来源，让模型知道用户那边几点。</li>
+    </ul>
+  </div>
+</div>
+<p class="take"><b>"已收下"看哪路先到：</b>HTTP 回执，或 follow 流里出现带自己 <code>requestId</code> 的 Inbox 行（<a href="../../packages/client/ui-conversation/src/client/service.ts">packages/client/ui-conversation/src/client/service.ts</a>）。</p>
+
+<!-- ───────────── 图 2 ───────────── -->
+<h2>图 2　一轮在日志里长这样</h2>
+<p class="q">一轮（turn）= 多步（step），每步一次模型调用，每步结束就落盘。</p>
+
+<div class="card">
+  <div class="log">
+    <div class="ev"><code>agent/inbox/spliced</code><span class="note">消息进 inbox</span></div>
+    <div class="ev"><code>turn/start</code><span class="note"></span></div>
+    <div class="loop">
+      <span class="lbl">每一步重复（有工具调用就进下一步）</span>
+      <div class="log">
+        <div class="ev"><code>step/start</code><span class="note"></span></div>
+        <div class="ev"><span class="mono" style="color:var(--muted)">本步给模型的消息</span><span class="note">第一步的顺序见下方</span></div>
+        <div class="ev"><code>assistant/message</code><span class="note">成品 <code>message</code> + 逐帧录像 <code>stream</code></span></div>
+        <div class="ev"><code>tool/call → tool/result</code><span class="note">有工具调用才有</span></div>
+        <div class="ev"><code>step/end</code><span class="note"></span></div>
+      </div>
+    </div>
+    <div class="ev"><code>turn/end</code><span class="note">某步只回文字、不调工具时；<code>completed</code> / <code>aborted</code></span></div>
+  </div>
+
+  <h3 style="margin-top:16px">第一步的消息顺序</h3>
+  <div class="chain"><code>system/message</code><span class="to">→</span><code>用户原文</code><span class="note">（<code>source.rpcId</code> = 1.1 的 <code>requestId</code>）</span><span class="to">→</span><span class="note">上下文 <code>user/message</code>：</span></div>
+  <div class="ctx">
+    <div><b>agent-instructions</b><code>~/.agents/AGENTS.md</code> 等</div>
+    <div><b>runtime-context</b>工作目录、沙箱、GUI 地址</div>
+    <div><b>skill-catalog</b>装了哪些 skill</div>
+    <div><b>time-context</b>时间、时区、间隔</div>
+  </div>
+</div>
+<div class="src">
+  <a href="../../docs/subsystems/session.zh.md">docs/subsystems/session.zh.md</a>　·
+  AGENTS.md 比对：<a href="../../packages/context/agent-instructions/src/state.ts">packages/context/agent-instructions/src/state.ts</a>
+</div>
+
+<div class="why">
+  <div class="card">
+    <h3>上下文是快照，只追加不改</h3>
+    <p class="note" style="margin:4px 0 0">第 1 轮全量写；之后只在内容变了才追加新的一条，旧的不改。AGENTS.md 每步比对 SHA-1，变了追加 <code>replace</code>。时间每轮都变，所以每轮都有。</p>
+  </div>
+  <div class="card">
+    <h3>为什么写进日志</h3>
+    <p class="note" style="margin:4px 0 0">模型看到的东西都能从日志重建（重放、恢复、fork）；旧消息不变，请求前缀稳定，命中缓存。</p>
+  </div>
+</div>
+<p class="take"><b>记一句：</b>每步结束就落盘，上下文只追加不改。日志是唯一可信的来源，模型看到什么都能从它重建。</p>
+
+<!-- ───────────── 图 3 ───────────── -->
+<h2>图 3　一帧 SSE 怎么变成屏幕上的一个字</h2>
+<p class="q">到一帧推一帧，不等整步结束；一步结束才落盘。</p>
+
+<div class="card">
+  <div class="stations">
+    <div class="sta src0"><b>DeepSeek</b>SSE 字节流</div>
+    <div class="sta"><b><span class="num">1</span>llm-deepseek</b>把字节切成 SSE 帧，翻译成统一的 <code>StreamChunk</code>（<code>reasoning-delta</code> / <code>text-delta</code> …）</div>
+    <div class="sta"><b><span class="num">2</span>agent loop</b><code>for await</code> 每个 chunk，<code>live.push(chunk)</code> 发出 <code>agent/assistant-stream</code>，<code>revision</code> +1</div>
+    <div class="sta"><b><span class="num">3</span>session-controller</b>a. 累积进内存，留作重连快照<br>b. 推给每个已连接的浏览器</div>
+    <div class="sta"><b><span class="num">4</span>浏览器</b>WS <code>session/follow</code> → <code>acceptFrame</code> → React 渲染</div>
+  </div>
+  <div class="src">
+    ① <a href="../../packages/llm/llm-deepseek/src/sse.ts">packages/llm/llm-deepseek/src/sse.ts</a>　·
+    ② <a href="../../packages/core/agent-loop/src/agent.ts">packages/core/agent-loop/src/agent.ts</a>　·
+    ③ <a href="../../packages/api/session-controller/src/history/assistant-stream.ts">packages/api/session-controller/src/history/assistant-stream.ts</a>　·
+    <a href="../../docs/subsystems/llm-streaming.zh.md">docs/subsystems/llm-streaming.zh.md</a>
+  </div>
+
+  <h3 style="margin-top:18px">一根 <code>session/follow</code> 流上有两类条目</h3>
+  <table class="cmp">
+    <thead><tr><th></th><th class="hseq">event</th><th class="hrev">assistant-stream</th></tr></thead>
+    <tbody>
+      <tr><th>是什么</th><td>已提交的事件</td><td>模型正在说的草稿，思考和正文都算</td></tr>
+      <tr><th>在哪</th><td>写进 jsonl</td><td>只在 Host 内存</td></tr>
+      <tr><th>编号</th><td><code>seq</code></td><td><code>revision</code>：每个 Agent 一个计数器，跨 step 一直加</td></tr>
+      <tr><th>Host 重启</th><td>还在</td><td>清零</td></tr>
+    </tbody>
+  </table>
+
+  <div class="strip">
+    <span class="ka">event seq n</span>
+    <span class="kc fat">草稿 start · startedAfterSeq = n</span>
+    <span class="kc">delta</span><span class="kc">delta</span><span class="kc">…</span>
+    <span class="note">→ 一步结束</span>
+    <span class="ka fat">event <code>assistant/message</code></span>
+    <span class="note">（它的 <code>stream</code> 字段就是这份逐帧录像）</span>
+  </div>
+</div>
+
+<div class="two">
+  <div class="card kc">
+    <h3>漏帧：浏览器这头</h3>
+    <p class="note" style="margin:4px 0 0">发现 <code>revision</code> 不连续，就当线路故障，自动重连。首帧是带草稿底稿的 snapshot，已显示的内容保留（<a href="../../packages/api/session-controller/src/client/transport.ts">packages/api/session-controller/src/client/transport.ts</a>）。</p>
+  </div>
+  <div class="card kc">
+    <h3>漏帧：Host 累积器这头</h3>
+    <p class="note" style="margin:4px 0 0">发现跳号，就丢掉这次的半截草稿，只对齐编号（<a href="../../packages/api/session-controller/src/assistant-stream.ts">packages/api/session-controller/src/assistant-stream.ts</a>）。</p>
+  </div>
+</div>
+<p class="take"><b>记一句：</b>草稿按 revision 实时推、只在内存；成品按 seq 一步一落盘。漏帧时宁可不给，也不给错，最终以落盘版本为准。</p>
+
+<!-- ───────────── 图 4 ───────────── -->
+<h2>图 4　回答到一半点停止</h2>
+<p class="q">停止就是掐断那一个 AbortSignal：fetch 断了，已收到的部分照样落盘。</p>
+
+<div class="card">
+  <div class="steps">
+    <div class="step"><div class="dot">1</div><div class="body"><span class="t">浏览器：<code>conversation.cancel()</code></span>
+      <div class="note"><a href="../../packages/client/ui-conversation/src/client/service.ts">packages/client/ui-conversation/src/client/service.ts</a></div></div></div>
+    <div class="step"><div class="dot">2</div><div class="body"><span class="t"><code>POST /api/session/cancel</code>，请求体只有 <code>sessionId</code></span>
+      <div class="note">"停下"做几次都一样，不需要 1.1 那种去重用的 <code>requestId</code>。</div></div></div>
+    <div class="step"><div class="dot">3</div><div class="body"><span class="t">Host：<code>agent.cancel({kind:'user'}, {keepInbox:true})</code></span>
+      <div class="note">只停当前这一轮，排队的消息保留（<a href="../../packages/api/session-controller/src/commands.ts">packages/api/session-controller/src/commands.ts</a> <code>commands.cancel</code>）。</div></div></div>
+    <div class="step"><div class="dot">4</div><div class="body"><span class="t">Agent：<code>phase.abort.abort(cause)</code></span>
+      <div class="note">这个 signal 开工时就传给了 llm-deepseek 的请求和 agent loop 的 <code>for await</code>：fetch 被掐断，循环抛异常进入 catch（<a href="../../packages/core/agent-loop/src/agent.ts">packages/core/agent-loop/src/agent.ts</a>）。</div></div></div>
+    <div class="step"><div class="dot">5</div><div class="body"><span class="t">落盘看这次模型调用已经收到了什么</span>
+      <div class="branch">
+        <div class="ka"><b>收到过思考或正文块</b>（只有思考也算）<br>写 <code>assistant/message</code>，带 <code>interrupted: true</code></div>
+        <div class="ka"><b>第一块还没到</b>（发送后约 0.2 秒内）<br>只写 <code>assistant/attempt</code>：只有逐帧记录，没有成品</div>
+      </div></div></div>
+    <div class="step"><div class="dot">6</div><div class="body"><span class="t"><code>step/end</code> → <code>turn/end {aborted: {kind: user}}</code></span></div></div>
+  </div>
+</div>
+
+<div class="two">
+  <div class="card">
+    <h3>和 Ctrl+C 停 Host 是同一套机制</h3>
+    <table class="cmp narrow">
+      <thead><tr><th></th><th>点停止</th><th>Ctrl+C</th></tr></thead>
+      <tbody>
+        <tr><th>原因</th><td><code>user</code></td><td><code>disposed</code></td></tr>
+        <tr><th>半截消息</th><td colspan="2">同样写 <code>interrupted</code> 的 <code>assistant/message</code></td></tr>
+        <tr><th>Host 进程</th><td>继续跑</td><td>退出；重启加载时追加 <code>session/end-seed</code></td></tr>
+      </tbody>
+    </table>
+    <p class="note" style="margin:8px 0 0">Ctrl+C 之前各步的工具效果（写文件、交付）早已落盘，不受影响；界面显示"已停止"。</p>
+  </div>
+  <div class="card">
+    <h3>下一轮模型看得到半截回答</h3>
+    <p class="note" style="margin:4px 0 0">每步都从日志重建上下文。<code>interrupted</code> 的 <code>assistant/message</code> 在历史里，所以发"继续"时模型能引用断掉的那句接着写；<code>assistant/attempt</code> 不进上下文。</p>
+  </div>
+</div>
+<p class="take"><b>记一句：</b>停止 = abort 一个 signal。收到多少写多少，写成 <code>interrupted</code> 就会进下一轮的上下文。</p>
+
+<!-- ───────────── 图 5 ───────────── -->
+<h2>图 5　刷新页面</h2>
+<p class="q">刷新只断开浏览器这一头，不会触发图 4 的 abort。agent loop 和 DeepSeek 的 fetch 照常，刷新后看到的逐字推送是之后新到的帧。</p>
+
+<div class="snap">
+  <span class="tag">重连后 session/follow 的第一帧：snapshot，由 Host 现场拼装</span>
+  <div class="snapcols">
+    <div><b>header</b></div>
+    <div><b>projections</b></div>
+    <div class="cut ka"><b>已落盘历史</b><code>cursor</code>（seq）、<code>records</code>、<code>hasMore</code></div>
+    <div class="cut kc"><b>assistantStream</b>草稿底稿：1.3 累积器的 <code>snapshot()</code>，<code>{revision, activeAttempt?}</code></div>
+  </div>
+  <div class="after">
+    <div class="ka"><b>切口 1：<code>cursor</code></b>　落盘事件按 seq 切，之后的增量从下一个 seq 推。</div>
+    <div class="kc"><b>切口 2：<code>ordinal</code></b>　草稿按它切，已折进底稿的帧不再重推。</div>
+  </div>
+</div>
+<div class="src">
+  拼装：<a href="../../packages/api/session-controller/src/web/controller.ts">packages/api/session-controller/src/web/controller.ts</a>　·
+  切口：<a href="../../packages/api/session-controller/src/history/assistant-stream.ts">packages/api/session-controller/src/history/assistant-stream.ts</a>　·
+  <a href="../../docs/subsystems/web-client.zh.md">docs/subsystems/web-client.zh.md</a> 的"重连"
+</div>
+
+<div class="two">
+  <div class="card">
+    <h3>不漏不重</h3>
+    <ul style="margin:4px 0 0;padding-left:18px">
+      <li>监听器在拿快照<b>之前</b>就挂上了，即 0.2 的"先订阅增量，再拿全量"。</li>
+      <li>两个切口保证增量和快照不重叠。</li>
+      <li>浏览器以快照的 <code>revision</code> 为起点，要求下一帧正好 +1，否则按图 3 的跳号重连（<a href="../../packages/api/session-controller/src/client/transport.ts">transport.ts</a>；<span class="badge">只读了代码，没有实测</span>）。</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>不是一次全拿</h3>
+    <p class="note" style="margin:4px 0 6px">打开窗口：最近<b>至少 50 条</b>消息、<b>至少 2 轮</b>、<b>最多 500 条</b>。<code>hasMore: true</code> 时往上滚动再 <code>loadOlder</code> 分页（<a href="../../packages/api/session-controller/src/client/sessions/session.ts">packages/api/session-controller/src/client/sessions/session.ts</a>）。</p>
+  </div>
+</div>
+
+<div class="card" style="margin-top:12px">
+  <h3>Host 重启过再刷新 <span class="badge">实测</span></h3>
+  <p class="note" style="margin:4px 0 0"><code>cursor 199</code> 是 <code>session/end-seed</code>，<code>assistantStream {revision: 0}</code>：内存草稿清零。Ctrl+C 时已写成 <code>interrupted</code> 的半截内容会从 <code>records</code> 回来；回不来的是后续输出，那一轮已经记为 <code>aborted: disposed</code>。</p>
+</div>
+<p class="take"><b>记一句：</b>刷新 = 重新订阅。Host 给一份"已落盘 + 草稿底稿"的快照，再用 seq 和 ordinal 两个切口接上增量。</p>
+
+<!-- ───────────── 自测 ───────────── -->
+<h2>盖住图，自己答一遍</h2>
+<details>
+  <summary>1. <code>requestId</code> 为什么必须由浏览器生成，而不是 Host？</summary>
+  <p>它用来去重"用户发的这一条消息"。会重发的是浏览器，只有它事先生成，同一个 ID 再来时 Host 才能认出来、直接回 accepted、不重复入队。</p>
+</details>
+<details>
+  <summary>2. 为什么 cancel 请求不带 <code>requestId</code>？</summary>
+  <p>"停下"做几次都一样，不需要去重。请求体只有 <code>sessionId</code>。</p>
+</details>
+<details>
+  <summary>3. 发送后 0.1 秒就点停止，和说到一半点停止，日志有什么不同？下一轮模型看得到哪个？</summary>
+  <p>第一块还没到：只写 <code>assistant/attempt</code>，不进上下文。收到过思考或正文：写 <code>interrupted: true</code> 的 <code>assistant/message</code>，下一轮模型看得到。</p>
+</details>
+<details>
+  <summary>4. seq 和 revision，哪个在 Host 重启后清零？为什么？</summary>
+  <p><code>revision</code>。它编的是只在 Host 内存里的草稿；<code>seq</code> 编的是写进 jsonl 的事件。</p>
+</details>
+<details>
+  <summary>5.（第 0 级留的题）快照里已有的东西，增量又推一次，客户端收到两次怎么办？</summary>
+  <p>在 <code>session/follow</code> 上不会发生：快照带两个切口，落盘事件按 <code>cursor</code>（seq）切，之后从下一个 seq 推；草稿按 <code>ordinal</code> 切，已折进底稿的帧不再重推。</p>
+</details>
+
+</main>
+</body>
+</html>
