@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dsh 第 2 级总览：工具</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #f7f6f2; --card: #fff; --ink: #1d1f23; --muted: #646a73; --line: #d9d6cc;
+  --soft: #efede6; --amber: #92520b; --amber-bg: #fdf3e1; --blue: #1d5fb8; --blue-bg: #e8f0fc;
+  --green: #17794a; --green-bg: #e5f4ec; --red: #9b2b24; --red-bg: #fbe9e7;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181c; --card: #1f2227; --ink: #e8e6e1; --muted: #a8afb8; --line: #383c44;
+    --soft: #2a2e35; --amber: #f0b354; --amber-bg: #3a2c12; --blue: #7fb0f5; --blue-bg: #17283f;
+    --green: #6fcf9a; --green-bg: #15301f; --red: #f28b82; --red-bg: #3b1d1a;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--ink); background: var(--bg); font: 15px/1.65 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+main { max-width: 980px; margin: auto; padding: 32px 16px 64px; }
+h1 { font-size: 26px; margin: 0 0 4px; }
+h2 { font-size: 19px; margin: 38px 0 4px; }
+h3 { font-size: 15px; margin: 0 0 4px; }
+p { margin: 0; }
+a { color: inherit; text-underline-offset: 3px; }
+code, .mono { font: .88em ui-monospace, "SF Mono", Menlo, monospace; overflow-wrap: anywhere; }
+code { padding: 1px 4px; border-radius: 4px; background: var(--soft); }
+.muted, .src { color: var(--muted); }
+.src { margin-top: 10px; font-size: 13px; }
+.card { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.nav, .two { display: grid; gap: 10px; margin-top: 12px; }
+.nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.nav a { text-decoration: none; }
+.nav a:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+@media (hover: hover) {
+  .nav a:hover { border-color: var(--blue); }
+}
+.nav span, .stack small { display: block; color: var(--muted); }
+.stack { display: grid; gap: 8px; margin-top: 12px; }
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.stack > .flow + .flow { border-top: 1px solid var(--line); padding-top: 8px; }
+.pill { display: inline-block; padding: 3px 8px; border-radius: 6px; color: var(--k, var(--ink)); background: var(--tint, var(--soft)); }
+.log { --k: var(--amber); --tint: var(--amber-bg); }
+.ask { --k: var(--blue); --tint: var(--blue-bg); }
+.run { --k: var(--green); --tint: var(--green-bg); }
+.deny { --k: var(--red); --tint: var(--red-bg); }
+.arrow { color: var(--muted); }
+.take { margin-top: 12px; padding: 9px 12px; border-left: 4px solid var(--ink); border-radius: 0 8px 8px 0; background: var(--soft); }
+.timeline { display: grid; gap: 6px; margin: 10px 0; }
+.lane { display: grid; grid-template-columns: 1.3em repeat(8, minmax(0, 1fr)); align-items: center; gap: 3px; }
+.lane b { grid-column: 1; }
+.bar { padding: 3px 0; text-align: center; border-radius: 5px; color: var(--k); background: var(--tint); font-size: 12px; }
+.serial-a { grid-column: 2 / 8; } .serial-b { grid-column: 8 / 10; }
+.parallel-a { grid-column: 2 / 8; } .parallel-b { grid-column: 3 / 5; }
+details { margin-top: 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+summary { cursor: pointer; font-weight: 600; }
+details p { margin: 6px 0 0 18px; }
+@media (max-width: 600px) {
+  .nav, .two { grid-template-columns: 1fr; }
+  .card { padding: 12px; }
+}
+</style>
+</head>
+<body>
+<main>
+<h1>dsh 第 2 级总览：一次工具调用怎么跑完</h1>
+<p class="muted">从 <a href="第1级-总览-261112.html">第 1 级的消息轮次</a> 放大到一个 <code>step</code> 内。对应<a href="../dsh-学习路线-261109.md">学习路线</a> 2.1–2.3。</p>
+<nav class="nav" aria-label="本级三课">
+  <a class="card" href="#events"><b>2.1　两条事件怎么配对？</b><span>调用、结果、工具卡片</span></a>
+  <a class="card" href="#approval"><b>2.2　审批在哪等？</b><span>谁发起、谁应答、拒绝后怎样</span></a>
+  <a class="card" href="#concurrency"><b>2.3　工具是串行还是并发？</b><span>执行时间与写入顺序</span></a>
+</nav>
+
+<section id="events">
+<h2>图 1　一个调用，两条日志事件</h2>
+<div class="two">
+  <div class="card"><h3><span class="pill log mono">tool/call</span> 发出调用</h3><p><code>data.callId</code> 是这次调用的 ID，<code>name</code> 和 <code>arguments</code> 说明要执行什么。</p></div>
+  <div class="card"><h3><span class="pill log mono">tool/result</span> 记录结果</h3><p><code>data.message.source.callId</code> 是同一个 ID；顶层 <code>sourceEventSeqs</code> 还可指回调用的 <code>seq</code>。</p></div>
+</div>
+<div class="card stack" aria-label="实测读取成功时的配对">
+  <div class="flow"><span class="pill log mono">31 · tool/call</span><span class="arrow" aria-hidden="true">→</span><span class="pill run">读取 README</span><span class="arrow" aria-hidden="true">→</span><span class="pill log mono">32 · tool/result</span></div>
+  <small>实测：seq 32 的 <code>sourceEventSeqs: [31]</code> 指回 seq 31；两条记录的调用 ID 也一致。</small>
+</div>
+<p class="take"><b>同一份结果，两种用途：</b><code>data.message.content</code> 给模型；工具可另写 <code>data.meta</code> 帮界面渲染，例如读取结果里的行号。</p>
+<p class="src">源码：<a href="../../packages/core/tools/src/batch.ts#L239">BatchSettlement</a> · <a href="../../packages/experimental/session-inspector/src/client/views/session-log/chat-target.ts#L31">日志与对话的关联</a></p>
+</section>
+
+<section id="approval">
+<h2>图 2　审批等的是同一条调用</h2>
+<p class="muted">两处都可以发起审批，但由同一个 waterfall 分发给应答者。</p>
+<div class="two">
+  <div class="card"><h3>前置检查发起</h3><p><code>tools/pre-execute</code> 返回 <code>ask</code>，工具流水线代它请求审批。</p></div>
+  <div class="card"><h3>工具体发起 <span class="pill ask">本次实测</span></h3><p>这次 bash 经过了前置检查，但审批由 bash 自己发起：进入 <code>execute()</code> 后，先等审批，再启动 shell。</p></div>
+</div>
+<div class="card stack">
+  <div class="flow"><span class="pill ask mono">ctx.approval.request()</span><span class="arrow" aria-hidden="true">→</span><span class="pill ask mono">approval/request</span><span class="arrow" aria-hidden="true">→</span><span>Web 审批卡片</span></div>
+  <div class="flow" aria-label="允许一次的实测事件顺序"><span class="pill log mono">52 · tool/call</span><span class="arrow" aria-hidden="true">→</span><span class="pill ask mono">53 · approval/asked</span><span class="arrow" aria-hidden="true">→</span><span class="pill ask mono">54 · approval/decided</span><span class="arrow" aria-hidden="true">→</span><span class="pill run">55–56 · job 启动与结束</span><span class="arrow" aria-hidden="true">→</span><span class="pill log mono">57 · tool/result</span></div>
+  <small>审批 <code>id</code> 把 53 和 54 配在一起；53 的 <code>callId</code> 把请求挂回 52。没有第二条 <code>tool/call</code>。</small>
+</div>
+<p class="take"><b>如果点「拒绝」</b>（源码结论，本课未实测）：日志写 <code>approval/decided: rejected</code>，shell 不启动。审批事件不进模型上下文；模型收到失败的 <code>tool/result</code>，这一轮仍可继续回复。</p>
+<p class="src">源码：<a href="../../packages/core/tools/src/pipeline.ts#L453">serviceAsk()</a> · <a href="../../packages/shell/tool-bash/src/index.ts#L523">bash execute()</a> · <a href="../../packages/interaction/user-approval/src/index.ts#L243">ApprovalService.request()</a></p>
+</section>
+
+<section id="concurrency">
+<h2>图 3　执行时间与写结果顺序是两回事</h2>
+<p class="muted">横轴向右是时间，示意条不按比例。</p>
+<div class="two">
+  <div class="card">
+    <h3>两次 bash：独占执行 <span class="pill log">实测</span></h3>
+    <div class="timeline" aria-hidden="true">
+      <div class="lane"><b>A</b><span class="bar run serial-a">sleep 3 后输出 A</span></div>
+      <div class="lane"><b>B</b><span class="bar run serial-b">输出 B</span></div>
+    </div>
+    <p>同一轮、同一个 <code>step</code>。B 的 <code>startedAt</code>（seq 75）比 A 的 <code>finishedAt</code>（seq 72）晚 14 毫秒。</p>
+  </div>
+  <div class="card">
+    <h3>允许并发的工具 <span class="pill ask">源码示意</span></h3>
+    <div class="timeline" aria-hidden="true">
+      <div class="lane"><b>A</b><span class="bar ask parallel-a">较慢</span></div>
+      <div class="lane"><b>B</b><span class="bar ask parallel-b">先完成</span></div>
+    </div>
+    <p>工具体可以在并发上限内重叠。即使 B 先完成，<code>tool/result</code> 仍按模型调用顺序写：先 A，后 B。</p>
+  </div>
+</div>
+<p class="take"><b>怎么验？</b>有 job 时间戳时，比较 <code>startedAt</code> 到 <code>finishedAt</code> 的区间是否重叠。只看两个结果的 <code>seq</code>，无法判断是否并发。</p>
+<p class="src">源码：<a href="../../packages/core/tools/src/pipeline.ts#L106">executionMode()</a> · <a href="../../packages/core/tools/src/batch.ts#L117">runGroup()</a>。三图实测均取自 <code>session-5ee48f33-19f1-4138-bbbf-225df67f2e13</code>。</p>
+</section>
+
+<h2>盖住图，自己答一遍</h2>
+<details><summary>1. 怎么把一条工具结果挂回原来的调用？</summary><p>对照调用和结果的 <code>callId</code>；在原始日志里也能用结果的 <code>sourceEventSeqs</code> 指回调用。</p></details>
+<details><summary>2. 点「拒绝」后，谁失败了？模型看见什么？</summary><p>失败的是这次工具调用，不是整个轮次。模型看到失败的 <code>tool/result</code>，看不到单独的审批审计事件。</p></details>
+<details><summary>3. A 的结果先写，能证明 B 在等 A 吗？</summary><p>不能。日志按调用顺序写结果。要判断这次是否重叠执行，比较 job 的起止时间。</p></details>
+</main>
+</body>
+</html>
